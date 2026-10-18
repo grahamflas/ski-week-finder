@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ski Week Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column. Pick-your-name buttons, then three large month grids stacked. Each day shows an X tag per person who can't go; days nobody blocked are green. */
+:root {
+  --bg: #f1f5f7;
+  --surface: #ffffff;
+  --cell: #e8eef2;
+  --fg: #12222c;
+  --muted: #4d626c;
+  --line: #c7d5dc;
+  --accent: #0a6a8f;
+  --accent-ink: #ffffff;
+  --hl: #ffe08a;
+  --free: #c9ecd9;
+  --free-edge: #17804f;
+  --on-p: #ffffff;
+  --p0: #2563a8; --p1: #c2410c; --p2: #0f766e;
+  color-scheme: light;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1820;
+    --surface: #14232d;
+    --cell: #1d303c;
+    --fg: #e7eff3;
+    --muted: #9db2bc;
+    --line: #2a404e;
+    --accent: #5cc3ea;
+    --accent-ink: #06222e;
+    --hl: #6b5710;
+    --free: #174a35;
+    --free-edge: #4bd08a;
+    --on-p: #0b1219;
+    --p0: #7fb2f0; --p1: #fb9a5b; --p2: #3fd0c0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1820;
+  --surface: #14232d;
+  --cell: #1d303c;
+  --fg: #e7eff3;
+  --muted: #9db2bc;
+  --line: #2a404e;
+  --accent: #5cc3ea;
+  --accent-ink: #06222e;
+  --hl: #6b5710;
+  --free: #174a35;
+  --free-edge: #4bd08a;
+  --on-p: #0b1219;
+  --p0: #7fb2f0; --p1: #fb9a5b; --p2: #3fd0c0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(40px, 9vw, 60px); line-height: 0.95; text-transform: uppercase; letter-spacing: 0.01em; }
+h2 { font-size: 24px; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.04em; }
+h3 { font-size: 34px; line-height: 1; }
+p { margin: 0; }
+.kicker { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 19px; color: var(--fg); max-width: 60ch; }
+mark.nicht { background: var(--hl); color: var(--fg); font-weight: 700; padding: 0 5px; border-radius: 4px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.banner { padding: 10px 14px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 14px; }
+
+/* Guide */
+.guide { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.guide summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; }
+.guide summary::-webkit-details-marker { display: none; }
+.guide summary::after { content: "+"; margin-left: auto; font-weight: 700; font-size: 20px; color: var(--muted); }
+.guide[open] summary::after { content: "\2212"; }
+.guide ol { margin: 12px 0 2px; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+.guide li::marker { font-weight: 700; color: var(--accent); }
+
+/* Names */
+.people { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  display: flex; align-items: center; gap: 12px; text-align: left; min-width: 150px;
+  padding: 12px 18px; background: var(--surface); border: 2px solid var(--line); border-radius: 12px;
+}
+.chip.sel { border-color: var(--pc); box-shadow: 0 0 0 1px var(--pc); }
+.swatch { width: 16px; height: 16px; border-radius: 5px; background: var(--pc); flex: none; }
+.who { display: flex; flex-direction: column; }
+.name { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1; }
+.meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.status { min-height: 20px; font-size: 14px; color: var(--muted); }
+
+/* Calendar */
+.months { display: flex; flex-direction: column; gap: 20px; }
+.month { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.wd { text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-bottom: 2px; }
+.day {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px;
+  min-height: 98px; padding: 8px; min-width: 0; text-align: left;
+  background: var(--cell); color: var(--fg); border: 0; border-radius: 8px;
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+.day.free { background: var(--free); }
+.day:hover { outline: 1px solid var(--muted); outline-offset: -1px; }
+.day:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.num { font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; line-height: 1; }
+.tags { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; width: 100%; min-width: 0; }
+.tag {
+  display: block; max-width: 100%; overflow-wrap: anywhere;
+  padding: 1px 7px; border-radius: 4px; background: var(--pc); color: var(--on-p);
+  font-size: 12px; font-weight: 600; line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .month { padding: 12px 10px; }
+  .grid { gap: 3px; }
+  .day { min-height: 74px; padding: 4px 2px; gap: 4px; }
+  .num { font-size: 15px; padding-left: 2px; }
+  .tags { gap: 2px; }
+  .tag { padding: 0 2px; font-size: 10px; line-height: 1.2; }
+  .chip { min-width: 0; flex: 1 1 140px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header>
+    <p class="kicker">Januar bis April 2027</p>
+    <h1>Ski Week Finder</h1>
+    <p class="lede" lang="de">Markiere die Tage, an denen du <mark class="nicht">nicht</mark> verreisen kannst.</p>
+    <div id="banner" class="banner" hidden></div>
+  </header>
+
+  <section aria-labelledby="guide-h" lang="de">
+    <details class="guide" open>
+      <summary><h2 id="guide-h">Anleitung</h2></summary>
+      <ol>
+        <li>Wähle unten deinen Namen aus.</li>
+        <li>Klicke im Kalender auf die Tage, an denen du <mark class="nicht">nicht</mark> kannst. Unter der Zahl erscheint dein Name mit „kann nicht“. Ein zweiter Klick nimmt es wieder weg.</li>
+        <li>Alle sehen sofort, wer an welchem Tag nicht kann. Ein Tag kann von mehreren Personen markiert werden.</li>
+        <li><strong>Grün</strong> sind Tage, an denen alle können. Sucht eine Reihe von 7 grünen Tagen hintereinander, das ist eure Skiwoche.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section aria-labelledby="who-h">
+    <h2 id="who-h">Wer bist du?</h2>
+    <div id="people" class="people"></div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section aria-label="Kalender">
+    <div id="months" class="months"></div>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

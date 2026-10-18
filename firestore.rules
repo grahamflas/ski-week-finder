@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Anyone with the link can read and edit the three calendars,
+    // and nothing else in the database.
+    match /people/{person} {
+      allow read: if true;
+      allow create, update: if person in ['alisa', 'graham', 'konny']
+        && request.resource.data.keys().hasOnly(['name', 'order', 'blocked'])
+        && request.resource.data.blocked is list
+        && request.resource.data.blocked.size() <= 130;
+    }
+  }
+}
